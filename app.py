@@ -2,6 +2,7 @@ import streamlit as st
 from utils.assinatura import AssinaturaCanvas
 from utils.formulario import FormularioRetirada
 from utils.gerador_pdf import GeradorPDF
+from utils.drive import upload_pdf_google_drive
 from utils.alterar_status import ConsultarNF
 import re
 import time
@@ -28,9 +29,18 @@ else:
         notas = dados["pedido"]
         lista_notas = [p.strip() for p in re.split(r"[,\-]", notas) if p.strip()]
 
-        if st.button("📄 Gerar PDF e Atualizar Omie"):
+        if st.button("📄 Gerar PDF e Enviar para o Google Drive"):
             pdf = GeradorPDF(dados, assinatura)
             pdf_stream = pdf.gerar_pdf()
+
+            # Upload para o Google Drive
+            link_drive = upload_pdf_google_drive(
+                pdf_bytes=pdf_stream,
+                nome_arquivo=f"comprovante_{dados['pedido']}.pdf"
+            )
+
+            st.success("✅ PDF gerado e enviado para o Google Drive com sucesso!")
+            st.markdown(f"[📂 Ver no Google Drive]({link_drive})", unsafe_allow_html=True)
 
             st.download_button(
                 label="⬇ Baixar Comprovante",
