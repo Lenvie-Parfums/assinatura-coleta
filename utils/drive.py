@@ -15,7 +15,6 @@ def upload_pdf_google_drive(pdf_bytes, nome_arquivo):
     credentials = service_account.Credentials.from_service_account_info(
         info, scopes=SCOPES)
 
-    # Delegação de domínio — age em nome do usuário Lenvie
     delegated_credentials = credentials.with_subject(DELEGATED_USER)
     service = build('drive', 'v3', credentials=delegated_credentials)
 
@@ -23,7 +22,6 @@ def upload_pdf_google_drive(pdf_bytes, nome_arquivo):
     pasta_raiz_id = st.secrets["gcp"]["pasta_id"]
     data_str = datetime.datetime.now().strftime('%d/%m/%Y')
 
-    # Busca pasta do dia dentro da pasta raiz
     results = service.files().list(
         q=f"'{pasta_raiz_id}' in parents and name='{data_str}' and mimeType='application/vnd.google-apps.folder' and trashed=false",
         driveId=shared_drive_id,
@@ -51,7 +49,6 @@ def upload_pdf_google_drive(pdf_bytes, nome_arquivo):
         ).execute()
         pasta_data_id = folder.get('id')
 
-    # Upload do PDF
     media = MediaIoBaseUpload(pdf_bytes, mimetype='application/pdf')
     file_metadata = {
         'name': nome_arquivo,
