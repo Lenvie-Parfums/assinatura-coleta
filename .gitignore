@@ -1,0 +1,6 @@
+# Ignorar arquivos sensíveis
+.streamlit/secrets.toml
+*.pyc
+__pycache__/
+.env
+service_account.json
