@@ -1,33 +1,70 @@
+import datetime
+import json
+import io
+from google.oauth2 import service_account
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaIoBaseUpload
 import streamlit as st
 
-st.title("Teste de importação")
+SCOPES = ['https://www.googleapis.com/auth/drive']
+DELEGATED_USER = "rafael.miranda@lenvieparfums.com.br"
 
-try:
-    from utils.assinatura import AssinaturaCanvas
-    st.success("✅ assinatura OK")
-except Exception as e:
-    st.error(f"❌ assinatura: {e}")
+def upload_pdf_google_drive(pdf_bytes, nome_arquivo):
 
-try:
-    from utils.formulario import FormularioRetirada
-    st.success("✅ formulario OK")
-except Exception as e:
-    st.error(f"❌ formulario: {e}")
+    info = json.loads(st.secrets["gcp"]["service_account"])
+    credentials = service_account.Credentials.from_service_account_info(
+        info, scopes=SCOPES)
 
-try:
-    from utils.gerador_pdf import GeradorPDF
-    st.success("✅ gerador_pdf OK")
-except Exception as e:
-    st.error(f"❌ gerador_pdf: {e}")
+    # Delegação de domínio — age em nome do usuário Lenvie
+    delegated_credentials = credentials.with_subject(DELEGATED_USER)
+    service = build('drive', 'v3', credentials=delegated_credentials)
 
-try:
-    from utils.drive import upload_pdf_google_drive
-    st.success("✅ drive OK")
-except Exception as e:
-    st.error(f"❌ drive: {e}")
+    shared_drive_id = st.secrets["gcp"]["shared_drive_id"]
+    pasta_raiz_id = st.secrets["gcp"]["pasta_id"]
+    data_str = datetime.datetime.now().strftime('%d/%m/%Y')
 
-try:
-    from utils.alterar_status import ConsultarNF
-    st.success("✅ alterar_status OK")
-except Exception as e:
-    st.error(f"❌ alterar_status: {e}")
+    # Busca pasta do dia dentro da pasta raiz
+    results = service.files().list(
+        q=f"'{pasta_raiz_id}' in parents and name='{data_str}' and mimeType='application/vnd.google-apps.folder' and trashed=false",
+        driveId=shared_drive_id,
+        corpora='drive',
+        includeItemsFromAllDrives=True,
+        supportsAllDrives=True,
+        fields='files(id, name)'
+    ).execute()
+
+    files = results.get('files', [])
+
+    if files:
+        pasta_data_id = files[0]['id']
+    else:
+        folder_metadata = {
+            'name': data_str,
+            'mimeType': 'application/vnd.google-apps.folder',
+            'parents': [pasta_raiz_id],
+            'driveId': shared_drive_id
+        }
+        folder = service.files().create(
+            body=folder_metadata,
+            fields='id',
+            supportsAllDrives=True
+        ).execute()
+        pasta_data_id = folder.get('id')
+
+    # Upload do PDF
+    media = MediaIoBaseUpload(pdf_bytes, mimetype='application/pdf')
+    file_metadata = {
+        'name': nome_arquivo,
+        'parents': [pasta_data_id],
+        'driveId': shared_drive_id,
+        'mimeType': 'application/pdf'
+    }
+
+    file = service.files().create(
+        body=file_metadata,
+        media_body=media,
+        fields='id, webViewLink',
+        supportsAllDrives=True
+    ).execute()
+
+    return file.get('webViewLink')
