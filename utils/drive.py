@@ -7,7 +7,7 @@ from googleapiclient.http import MediaIoBaseUpload
 import streamlit as st
 
 SCOPES = ['https://www.googleapis.com/auth/drive']
-DELEGATED_USER = "rafael.miranda@lenvieparfums.com.br"
+DELEGATED_USER = "rafael.miranda@lenvieparfums.com"
 
 def upload_pdf_google_drive(pdf_bytes, nome_arquivo):
 
