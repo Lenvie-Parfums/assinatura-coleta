@@ -4,7 +4,7 @@ import numpy as np
 
 class AssinaturaCanvas:
     def capturar_assinatura(self):
-        st.write("✍️ Assinatura do motorista:")
+        st.write("✍️ Assinatura do motorista::")
         canvas_result = st_canvas(
             fill_color="rgba(0, 0, 0, 0.05)",
             stroke_width=2,
